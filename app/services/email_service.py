@@ -1,25 +1,29 @@
-import resend  # Import the module, not a class
-import os
 from app.config import settings
-
-# Configure the global API key
-resend.api_key = os.getenv("RESEND_API_KEY")
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 def send_contact_email(name: str, profile_link: str):
     try:
-        # Use resend.Emails.send() with a dictionary/params
-        params = {
-            "from": os.getenv("FROM_EMAIL", "onboarding@resend.dev"),
-            "to": [settings.ADMIN_EMAIL],
-            "subject": "🚀 New Portfolio Visitor",
-            "html": f"""
-            <p>New visitor submitted details:</p>
-            <p><b>Name:</b> {name}</p>
-            <p><b>Profile:</b> <a href="{profile_link}">{profile_link}</a></p>
-            """,
-        }
-        
-        resend.Emails.send(params)
+        message = MIMEMultipart()
+        message["From"] = settings.EMAIL_USER
+        message["To"] = settings.ADMIN_EMAIL
+        message["Subject"] = "🚀 New Portfolio Visitor"
+
+        body = f"""
+        New visitor submitted details:
+
+        Name: {name}
+        Profile: {profile_link}
+        """
+        message.attach(MIMEText(body, "plain"))
+
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.starttls()
+        server.login(settings.EMAIL_USER, settings.EMAIL_PASSWORD)
+        server.sendmail(settings.EMAIL_USER, settings.ADMIN_EMAIL, message.as_string())
+        server.quit()
+        print("Email sent successfully!")
         return True
     except Exception as e:
         print("Email error:", e)

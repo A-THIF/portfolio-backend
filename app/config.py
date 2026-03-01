@@ -1,10 +1,13 @@
-import os
-from dotenv import load_dotenv
+# app/config.py
+from pydantic_settings import BaseSettings
 
-load_dotenv()
+class Settings(BaseSettings):
+    EMAIL_USER: str
+    EMAIL_PASSWORD: str
+    ADMIN_EMAIL: str
 
-class Settings:
-    ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
-    RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+    model_config = {
+        "env_file": ".env"
+    }
 
 settings = Settings()
