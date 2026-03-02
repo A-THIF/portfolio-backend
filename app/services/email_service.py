@@ -1,30 +1,52 @@
-from app.config import settings
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+# app/services/email_service.py
 
-def send_contact_email(name: str, profile_link: str):
+import base64
+from email.mime.text import MIMEText
+from google.oauth2.credentials import Credentials
+from google.auth.transport.requests import Request
+from googleapiclient.discovery import build
+from app.config import settings
+
+def send_contact_email(name: str, profile_link: str) -> bool:
     try:
-        message = MIMEMultipart()
-        message["From"] = settings.EMAIL_USER
-        message["To"] = settings.ADMIN_EMAIL
-        message["Subject"] = "🚀 New Portfolio Visitor"
+        creds = Credentials(
+            None,
+            refresh_token=settings.GMAIL_REFRESH_TOKEN,
+            token_uri="https://oauth2.googleapis.com/token",
+            client_id=settings.GMAIL_CLIENT_ID,
+            client_secret=settings.GMAIL_CLIENT_SECRET,
+            scopes=["https://www.googleapis.com/auth/gmail.send"],
+        )
+
+        # Refresh access token automatically
+        creds.refresh(Request())
+
+        service = build("gmail", "v1", credentials=creds)
 
         body = f"""
-        New visitor submitted details:
+New Portfolio Submission 🚀
 
-        Name: {name}
-        Profile: {profile_link}
+Name: {name}
+Profile: {profile_link}
         """
-        message.attach(MIMEText(body, "plain"))
 
-        server = smtplib.SMTP("smtp.gmail.com", 587)
-        server.starttls()
-        server.login(settings.EMAIL_USER, settings.EMAIL_PASSWORD)
-        server.sendmail(settings.EMAIL_USER, settings.ADMIN_EMAIL, message.as_string())
-        server.quit()
-        print("Email sent successfully!")
+        message = MIMEText(body)
+        message["to"] = settings.GMAIL_SENDER
+        message["from"] = settings.GMAIL_SENDER
+        message["subject"] = "🚀 New Portfolio Visitor"
+
+        raw_message = base64.urlsafe_b64encode(
+            message.as_bytes()
+        ).decode()
+
+        service.users().messages().send(
+            userId="me",
+            body={"raw": raw_message}
+        ).execute()
+
+        print("Email sent successfully via Gmail API!")
         return True
+
     except Exception as e:
-        print("Email error:", e)
+        print("Gmail API error:", e)
         return False

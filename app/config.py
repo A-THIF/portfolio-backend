@@ -2,9 +2,10 @@
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    EMAIL_USER: str
-    EMAIL_PASSWORD: str
-    ADMIN_EMAIL: str
+    GMAIL_CLIENT_ID: str
+    GMAIL_CLIENT_SECRET: str
+    GMAIL_REFRESH_TOKEN: str
+    GMAIL_SENDER: str
 
     model_config = {
         "env_file": ".env"
