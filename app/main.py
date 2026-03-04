@@ -1,14 +1,31 @@
-# app/main.py
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes.contact import router as contact_router
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
+
+from app.routes import auth
+from app.databases.database import engine, Base
+from app.utils.limiter import limiter
+
 
 app = FastAPI()
 
-# Allow your test and production frontend URLs
+# Create DB tables
+Base.metadata.create_all(bind=engine)
+
+# Attach limiter to app
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
+# CORS
 origins = [
-    "https://a-thif.netlify.app",       # testing
-    "https://a-thif-portfolio.netlify.app",  # production
+    "https://a-thif.netlify.app",
+    "https://a-thif-portfolio.netlify.app",
 ]
 
 app.add_middleware(
@@ -19,4 +36,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(contact_router)
+app.include_router(auth.router)
+
+import os
+print("DATABASE_URL:", os.getenv("DATABASE_URL"))
