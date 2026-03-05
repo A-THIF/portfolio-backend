@@ -8,9 +8,9 @@ if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
 
 engine = create_engine(
     DATABASE_URL,
-    pool_pre_ping=True,
-    pool_size=5,
-    max_overflow=10
+    connect_args={'connect_timeout': 10}, # Give Neon 10 seconds to wake up
+    pool_pre_ping=True,                  # Checks if connection is alive before using it
+    pool_recycle=3600                    # Refresh connections every hour
 )
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
