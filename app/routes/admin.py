@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from app.database.database import SessionLocal
+from app.databases.database import SessionLocal
 from app.models.visitor import Visitor
 from app.utils.security import get_current_admin
 

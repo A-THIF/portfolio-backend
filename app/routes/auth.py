@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Request, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
-from app.database.database import SessionLocal
+from app.databases.database import SessionLocal
 from app.models.visitor import Visitor
 from app.schemas.auth_schema import LoginRequest
 from app.utils.security import create_access_token, get_current_user, get_current_admin # Add this
