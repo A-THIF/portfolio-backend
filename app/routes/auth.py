@@ -1,30 +1,34 @@
-# app/routes/auth.py
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
-from app.databases.database import SessionLocal
+from app.database.database import SessionLocal
 from app.models.visitor import Visitor
 from app.schemas.auth_schema import LoginRequest
-from app.utils.security import create_access_token
+from app.utils.security import create_access_token, get_current_user, get_current_admin # Add this
 from app.services.email_service import send_contact_email
-from app.utils.security import get_current_user
 from slowapi.util import get_remote_address
 from slowapi import Limiter
-
+import os
 
 router = APIRouter()
-ALERT_INTERVAL = timedelta(hours=6)  # 6-hour gap between emails
+ALERT_INTERVAL = timedelta(hours=6)
+limiter = Limiter(key_func=get_remote_address)
 
 def get_db():
     db = SessionLocal()
     try: yield db
     finally: db.close()
-limiter = Limiter(key_func=get_remote_address)
 
 @router.post("/login")
+@limiter.limit("5/minute")
 async def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
     ip = request.client.host
     user_agent = request.headers.get("user-agent")
+    
+    # --- ADMIN MASTER CHECK ---
+    # Replace 'AthifMaster' and 'your_secret_link' with values only you know
+    is_admin = data.name == "AthifMaster" and data.profile_link == "your_secret_link"
+    role = "admin" if is_admin else "visitor"
 
     visitor = db.query(Visitor).filter(
         Visitor.name == data.name,
@@ -40,7 +44,6 @@ async def login(data: LoginRequest, request: Request, db: Session = Depends(get_
         if data.profile_link: 
             visitor.profile_link = data.profile_link
 
-        # Send email only if last_alert is None or >6 hours ago
         if not visitor.last_alert or (now - visitor.last_alert) >= ALERT_INTERVAL:
             should_alert = True
     else:
@@ -54,29 +57,51 @@ async def login(data: LoginRequest, request: Request, db: Session = Depends(get_
             last_visit=now
         )
         db.add(visitor)
-        should_alert = True  # always alert for new visitor
+        should_alert = True 
 
-    if should_alert:
-        visitor.last_alert = now  # update alert time
-        db.commit()  # commit before sending email to ensure DB is updated
-
-        # Prepare email with visit count
-        alert_msg = f"Visitor: {visitor.name}\nTotal Visits: {visitor.visit_count}\nLast visit: {visitor.last_visit}"
+    # We don't need to email alerts for your own admin logins
+    if should_alert and not is_admin:
+        visitor.last_alert = now
+        db.commit()
         send_contact_email(visitor.name, visitor.profile_link or "No link provided")
     else:
-        db.commit()  # just commit DB updates
+        db.commit()
 
-    # JWT token creation
-    token = create_access_token({"sub": data.name})
+    # JWT now includes the 'role'
+    token = create_access_token({"sub": data.name, "role": role})
 
     return {
         "access_token": token,
         "token_type": "bearer",
         "expires_in": 3600,
-        "visit_count": visitor.visit_count
+        "role": role
     }
 
-@router.get("/portfolio-data") # Use router, not app
+# --- NEW ADMIN STATS ENDPOINT ---
+@router.get("/admin/stats")
+async def get_admin_stats(db: Session = Depends(get_db), admin: dict = Depends(get_current_admin)):
+    """
+    Only accessible if JWT has role: admin
+    """
+    visitors = db.query(Visitor).all()
+    
+    # This structure is perfect for ECharts
+    return {
+        "summary": {
+            "total_visitors": len(visitors),
+            "total_sessions": sum(v.visit_count for v in visitors)
+        },
+        "details": [
+            {
+                "name": v.name,
+                "visits": v.visit_count,
+                "last_active": v.last_visit,
+                "platform": v.user_agent[:20] # Short version for charts
+            } for v in visitors
+        ]
+    }
+
+@router.get("/portfolio-data")
 def get_private_data(current_user: dict = Depends(get_current_user)):
     return {
         "data": "Welcome to the gamified portfolio!", 

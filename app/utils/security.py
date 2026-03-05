@@ -31,6 +31,11 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
     return payload
-def create_admin_token():
-    # We add 'role': 'admin' to the payload
-    return create_access_token(data={"sub": "athif_admin", "role": "admin"})
+def get_current_admin(payload: dict = Depends(get_current_user)):
+    # We check if the 'role' field in the JWT is 'admin'
+    if payload.get("role") != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have administrative privileges"
+        )
+    return payload
