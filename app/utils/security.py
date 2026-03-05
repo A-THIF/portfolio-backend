@@ -1,7 +1,7 @@
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 import os
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException,status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 SECRET_KEY = os.getenv("SECRET_KEY")
@@ -30,4 +30,12 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
     if payload is None:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
+    return payload
+def get_current_admin(payload: dict = Depends(get_current_user)):
+    # We check if the 'role' field in the JWT is 'admin'
+    if payload.get("role") != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have administrative privileges."
+        )
     return payload
