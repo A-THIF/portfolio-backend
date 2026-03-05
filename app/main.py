@@ -38,7 +38,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
-app.include_router(admin_dashboard.router)
+app.include_router( admin_dashboard.router)
 
 import os
 print("DATABASE_URL:", os.getenv("DATABASE_URL"))

@@ -16,7 +16,7 @@ def get_db():
 @router.get("/admin-dashboard", response_class=HTMLResponse)
 async def admin_dashboard(request: Request, db: Session = Depends(get_db)):
     token = request.query_params.get("token")
-    admin_secret = os.getenv("ADMIN_SECRET")
+    admin_secret = os.getenv("ADMIN_SECRET_KEY")
 
     if not token or token != admin_secret:
         raise HTTPException(status_code=401, detail="Unauthorized")
