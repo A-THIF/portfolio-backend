@@ -10,6 +10,7 @@ from slowapi import _rate_limit_exceeded_handler
 from app.routes import auth
 from app.databases.database import engine, Base
 from app.utils.limiter import limiter
+import app.admin_dashboard
 
 
 app = FastAPI()
@@ -37,6 +38,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(app.admin_dashboard.router)
 
 import os
 print("DATABASE_URL:", os.getenv("DATABASE_URL"))

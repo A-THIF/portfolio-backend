@@ -27,7 +27,7 @@ async def login(data: LoginRequest, request: Request, db: Session = Depends(get_
     
     # --- ADMIN MASTER CHECK ---
     # Replace 'AthifMaster' and 'your_secret_link' with values only you know
-    is_admin = data.name == "AthifMaster" and data.profile_link == "your_secret_link"
+    is_admin = data.name == os.getenv("ADMIN_NAME") and data.profile_link == os.getenv("ADMIN_SECRET_KEY")
     role = "admin" if is_admin else "visitor"
 
     visitor = db.query(Visitor).filter(
@@ -63,7 +63,13 @@ async def login(data: LoginRequest, request: Request, db: Session = Depends(get_
     if should_alert and not is_admin:
         visitor.last_alert = now
         db.commit()
-        send_contact_email(visitor.name, visitor.profile_link or "No link provided")
+        send_contact_email(
+            name=visitor.name,
+            profile_link=visitor.profile_link,
+            visit_count=visitor.visit_count,
+            ip=visitor.ip_address,
+            agent=visitor.user_agent
+        )
     else:
         db.commit()
 

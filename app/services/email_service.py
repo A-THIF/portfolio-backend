@@ -7,7 +7,7 @@ from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from app.config import settings
 
-def send_contact_email(name: str, profile_link: str) -> bool:
+def send_contact_email(name: str, profile_link: str, visit_count: int, ip: str, agent: str) -> bool:
     try:
         creds = Credentials(
             None,
@@ -24,16 +24,25 @@ def send_contact_email(name: str, profile_link: str) -> bool:
         service = build("gmail", "v1", credentials=creds)
 
         body = f"""
-New Portfolio Submission 🚀
+🚀 New Portfolio Activity Detected
 
+👤 Visitor Details:
+------------------
 Name: {name}
 Profile: {profile_link}
+IP Address: {ip}
+Browser/Device: {agent}
+
+📊 Analytics:
+------------------
+Total Lifetime Visits: {visit_count}
+Status: {"Returning Visitor" if visit_count > 1 else "First Time Visitor"}
         """
 
         message = MIMEText(body)
         message["to"] = settings.GMAIL_SENDER
         message["from"] = settings.GMAIL_SENDER
-        message["subject"] = "🚀 New Portfolio Visitor"
+        message["subject"] = f"🚀 Portfolio Visit: {name} (Visit #{visit_count})"
 
         raw_message = base64.urlsafe_b64encode(
             message.as_bytes()
