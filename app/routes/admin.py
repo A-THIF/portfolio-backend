@@ -41,38 +41,34 @@ async def get_user_detail(user_id: int, request: Request, db: Session = Depends(
     if not user: 
         return HTMLResponse(content="<h1>User Not Found</h1>", status_code=404)
 
-        html_content = f"""
-        <html>
-          <head>
-            <title>User {user.name} - Details</title>
-            <style>
-              body {{ font-family: Arial, sans-serif; background: #111; color: #fff; padding: 25px; }}
-              .card {{ background: #222; border: 1px solid #444; padding: 20px; border-radius: 8px; max-width: 800px; }}
-              .row {{ margin-bottom: 8px; }}
-              .label {{ color: #ccc; width: 140px; display: inline-block; }}
-              .value {{ color: #fff; }}
-              a {{ color: #59a6ff; text-decoration: none; }}
-            </style>
-          </head>
-          <body>
-            <h1>User Profile: {user.name}</h1>
-            <div class="card">
-              <div class="row"><span class="label">ID:</span><span class="value">{user.id}</span></div>
-              <div class="row"><span class="label">Name:</span><span class="value">{user.name}</span></div>
-              <div class="row"><span class="label">Profile:</span><span class="value">{user.profile_link or '—'}</span></div>
-              <div class="row"><span class="label">Email:</span><span class="value">{user.email or '—'}</span></div>
-              <div class="row"><span class="label">IP Address:</span><span class="value">{user.ip_address}</span></div>
-              <div class="row"><span class="label">User-Agent:</span><span class="value">{user.user_agent}</span></div>
-              <div class="row"><span class="label">Visits:</span><span class="value">{user.visit_count}</span></div>
-              <div class="row"><span class="label">First Seen:</span><span class="value">{user.first_visit}</span></div>
-              <div class="row"><span class="label">Last Seen:</span><span class="value">{user.last_visit}</span></div>
-              <div class="row"><span class="label">Last Alert:</span><span class="value">{user.last_alert or '—'}</span></div>
-            </div>
-            <p><a href="/admin-dashboard?token={token}">&larr; Back to dashboard</a></p>
-          </body>
-        </html>
-        """
-        return HTMLResponse(content=html_content)
+    # We force HTML response here so you don't see JSON in the browser
+    html_content = f"""
+    <html>
+      <head>
+        <title>User {user.name} - Details</title>
+        <style>
+          body {{ font-family: sans-serif; background: #0a0a0a; color: #fff; padding: 40px; display: flex; flex-direction: column; align-items: center; }}
+          .card {{ background: #111; border: 1px solid #333; padding: 25px; border-radius: 12px; width: 100%; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }}
+          .row {{ display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #222; }}
+          .label {{ color: #888; font-weight: bold; font-size: 13px; }}
+          .value {{ color: #4CAF50; font-family: monospace; }}
+          .back {{ margin-top: 20px; color: #00BFFF; text-decoration: none; }}
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <h1>Profile: {user.name}</h1>
+          <div class="row"><span class="label">IP Address</span><span class="value">{user.ip_address}</span></div>
+          <div class="row"><span class="label">Total Visits</span><span class="value">{user.visit_count}</span></div>
+          <div class="row"><span class="label">Last Seen</span><span class="value">{user.last_visit.strftime('%Y-%m-%d %H:%M') if user.last_visit else 'N/A'}</span></div>
+          <div class="row"><span class="label">User-Agent</span><span class="value" style="font-size:10px; text-align:right;">{user.user_agent}</span></div>
+          <div class="row" style="border:none;"><span class="label">Profile Link</span><span class="value">{user.profile_link or 'None'}</span></div>
+        </div>
+        <a href="/admin-dashboard?token={token}" class="back">&larr; Back to Dashboard</a>
+      </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
     
     # Fallback: Return JSON if it's an API call, not a browser visit
     return {
