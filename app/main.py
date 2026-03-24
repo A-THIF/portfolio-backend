@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler
+from app.routes import admin
 
 from app.routes import auth
 from app.databases.database import engine, Base
@@ -39,6 +40,7 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router( admin_dashboard.router)
+app.include_router(admin.router)
 
 import os
 print("DATABASE_URL:", os.getenv("DATABASE_URL"))
