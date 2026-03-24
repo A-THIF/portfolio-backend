@@ -69,12 +69,3 @@ async def get_user_detail(user_id: int, request: Request, db: Session = Depends(
     </html>
     """
     return HTMLResponse(content=html_content)
-    
-    # Fallback: Return JSON if it's an API call, not a browser visit
-    return {
-        "id": user.id,
-        "name": user.name,
-        "ip_address": user.ip_address,
-        "visit_count": user.visit_count,
-        "last_visit": user.last_visit.isoformat() if user.last_visit else None
-    }
