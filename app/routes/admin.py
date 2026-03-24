@@ -14,18 +14,22 @@ def get_db():
     try: yield db
     finally: db.close()
 
+# C:\Users\parve\Documents\Projects\portfolio-backend\app\routes\admin.py
+
 @router.get("/admin/stats")
 async def get_stats(db: Session = Depends(get_db), token: str = Query(None)):
-    if token != os.getenv("ADMIN_SECRET_KEY"):
-        raise HTTPException(status_code=401)
+    admin_secret = os.getenv("ADMIN_SECRET_KEY")
+    if not token or token != admin_secret:
+        raise HTTPException(status_code=401, detail="Invalid Admin Token")
 
-    # Grouping by Date so the graph is clean
+    # This groups hits by date so the graph shows daily totals
     stats = db.query(
         func.date(Visitor.last_visit).label('date'),
         func.count(Visitor.id).label('count')
     ).group_by(func.date(Visitor.last_visit))\
      .order_by(func.date(Visitor.last_visit)).all()
 
+    # Returns: {"dates": ["2026-03-24"], "counts": [5]}
     return {
         "dates": [str(s.date) for s in stats],
         "counts": [s.count for s in stats]
