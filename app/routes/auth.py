@@ -9,6 +9,7 @@ from app.services.email_service import send_contact_email
 from slowapi.util import get_remote_address
 from slowapi import Limiter
 import os
+from sqlalchemy import func
 
 router = APIRouter()
 ALERT_INTERVAL = timedelta(hours=6)
@@ -85,26 +86,26 @@ async def login(data: LoginRequest, request: Request, db: Session = Depends(get_
 
 # --- NEW ADMIN STATS ENDPOINT ---
 @router.get("/admin/stats")
-async def get_admin_stats(db: Session = Depends(get_db), admin: dict = Depends(get_current_admin)):
-    """
-    Only accessible if JWT has role: admin
-    """
-    visitors = db.query(Visitor).all()
-    
-    # This structure is perfect for ECharts
+async def get_admin_stats(
+    db: Session = Depends(get_db),
+    admin: dict = Depends(get_current_admin)
+):
+    last_7_days = datetime.utcnow() - timedelta(days=7)
+
+    results = db.query(
+        func.date(Visitor.last_visit).label("date"),
+        func.count(Visitor.id).label("count")
+    ).filter(
+        Visitor.last_visit >= last_7_days
+    ).group_by(
+        func.date(Visitor.last_visit)
+    ).order_by(
+        func.date(Visitor.last_visit)
+    ).all()
+
     return {
-        "summary": {
-            "total_visitors": len(visitors),
-            "total_sessions": sum(v.visit_count for v in visitors)
-        },
-        "details": [
-            {
-                "name": v.name,
-                "visits": v.visit_count,
-                "last_active": v.last_visit,
-                "platform": v.user_agent[:20] # Short version for charts
-            } for v in visitors
-        ]
+        "dates": [str(r.date) for r in results],
+        "counts": [r.count for r in results]
     }
 
 @router.get("/portfolio-data")
@@ -112,4 +113,55 @@ def get_private_data(current_user: dict = Depends(get_current_user)):
     return {
         "data": "Welcome to the gamified portfolio!", 
         "user": current_user['sub']
+    }
+
+@router.get("/admin/users")
+def get_users(page: int = 1, limit: int = 10, db: Session = Depends(get_db), request: Request = None):
+    token = request.query_params.get("token")
+    if token != os.getenv("ADMIN_SECRET_KEY"):
+        raise HTTPException(status_code=401)
+
+    offset = (page - 1) * limit
+
+    users = db.query(Visitor)\
+        .order_by(Visitor.last_visit.desc())\
+        .offset(offset)\
+        .limit(limit)\
+        .all()
+
+    total = db.query(Visitor).count()
+
+    return {
+        "total": total,
+        "page": page,
+        "data": [
+            {
+                "id": u.id,
+                "name": u.name,
+                "visits": u.visit_count,
+                "last_visit": u.last_visit
+            } for u in users
+        ]
+    }
+
+@router.get("/admin/user/{user_id}")
+def get_user(user_id: int, db: Session = Depends(get_db), request: Request = None):
+    token = request.query_params.get("token")
+    
+    if token != os.getenv("ADMIN_SECRET_KEY"):
+        raise HTTPException(status_code=401)
+
+    user = db.query(Visitor).filter(Visitor.id == user_id).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return {
+        "name": user.name,
+        "profile": user.profile_link,
+        "ip": user.ip_address,
+        "browser": user.user_agent,
+        "first_visit": user.first_visit,
+        "last_visit": user.last_visit,
+        "visits": user.visit_count
     }
