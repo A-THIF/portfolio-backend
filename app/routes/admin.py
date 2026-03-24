@@ -41,7 +41,6 @@ async def get_user_detail(user_id: int, request: Request, db: Session = Depends(
     if not user: 
         return HTMLResponse(content="<h1>User Not Found</h1>", status_code=404)
 
-    if "text/html" in request.headers.get("accept", ""):
         html_content = f"""
         <html>
           <head>
