@@ -72,3 +72,10 @@ async def get_user_detail(user_id: int, request: Request, db: Session = Depends(
     </html>
     """
     return HTMLResponse(content=html_content)
+@router.get("/public/stats")
+async def get_public_stats(db: Session = Depends(get_db)):
+    total = db.query(func.count(Visitor.id)).scalar()
+
+    return {
+        "total_visitors": total
+    }
