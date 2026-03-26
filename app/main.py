@@ -28,6 +28,7 @@ app.add_middleware(SlowAPIMiddleware)
 origins = [
     "https://a-thif.netlify.app",
     "https://a-thif-portfolio.netlify.app",
+    "https://athif-os.vercel.app"
 ]
 
 app.add_middleware(

@@ -17,10 +17,9 @@ def get_db():
 # C:\Users\parve\Documents\Projects\portfolio-backend\app\routes\admin.py
 
 @router.get("/admin/stats")
-async def get_stats(db: Session = Depends(get_db), token: str = Query(None)):
-    admin_secret = os.getenv("ADMIN_SECRET_KEY")
-    if not token or token != admin_secret:
-        raise HTTPException(status_code=401, detail="Invalid Admin Token")
+async def get_stats(db: Session = Depends(get_db), admin: bool = Depends(get_current_admin), token: str = Query(None)):
+    if not admin:
+        raise HTTPException(status_code=401, detail="Access denied")
 
     # This groups hits by date so the graph shows daily totals
     stats = db.query(
