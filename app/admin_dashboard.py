@@ -77,7 +77,7 @@ async def admin_dashboard(request: Request, db: Session = Depends(get_db)):
                 const ctx = document.getElementById('visitorChart').getContext('2d');
                 const safeToken = encodeURIComponent("{token}");
 
-                fetch('/admin/stats?token=' + safeToken)
+                fetch('/public/stats')
                     .then(res => res.json())
                     .then(data => {{
                         new Chart(ctx, {{

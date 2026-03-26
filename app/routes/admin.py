@@ -14,25 +14,6 @@ def get_db():
     try: yield db
     finally: db.close()
 
-# C:\Users\parve\Documents\Projects\portfolio-backend\app\routes\admin.py
-
-@router.get("/admin/stats")
-async def get_stats(db: Session = Depends(get_db), admin: bool = Depends(get_current_admin), token: str = Query(None)):
-    if not admin:
-        raise HTTPException(status_code=401, detail="Access denied")
-
-    # This groups hits by date so the graph shows daily totals
-    stats = db.query(
-        func.date(Visitor.last_visit).label('date'),
-        func.count(Visitor.id).label('count')
-    ).group_by(func.date(Visitor.last_visit))\
-     .order_by(func.date(Visitor.last_visit)).all()
-
-    # Returns: {"dates": ["2026-03-24"], "counts": [5]}
-    return {
-        "dates": [str(s.date) for s in stats],
-        "counts": [s.count for s in stats]
-    }
 
 
 @router.get("/admin/user/{user_id}", response_class=HTMLResponse)
@@ -74,8 +55,16 @@ async def get_user_detail(user_id: int, request: Request, db: Session = Depends(
     return HTMLResponse(content=html_content)
 @router.get("/public/stats")
 async def get_public_stats(db: Session = Depends(get_db)):
+    stats = db.query(
+        func.date(Visitor.last_visit).label('date'),
+        func.count(Visitor.id).label('count')
+    ).group_by(func.date(Visitor.last_visit))\
+     .order_by(func.date(Visitor.last_visit)).all()
+
     total = db.query(func.count(Visitor.id)).scalar()
 
     return {
+        "dates": [str(s.date) for s in stats],
+        "counts": [s.count for s in stats],
         "total_visitors": total
     }
