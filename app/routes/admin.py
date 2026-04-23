@@ -1,3 +1,5 @@
+from http.cookiejar import Cookie
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
@@ -19,10 +21,11 @@ def get_db():
 @router.get("/admin/user/{user_id}", response_class=HTMLResponse)
 async def get_user_detail(
     user_id: int, 
-    request: Request, 
     db: Session = Depends(get_db), 
-    admin_user: dict = Depends(get_current_admin) # This enforces JWT check
+    admin_access_token: str = Cookie(None) # Automatically looks for the cookie
 ):
+    if not admin_access_token:
+        raise HTTPException(status_code=401, detail="No admin cookie found")
     token = request.query_params.get("token")
     if not token:
         raise HTTPException(status_code=401, detail="Unauthorized: Missing token")

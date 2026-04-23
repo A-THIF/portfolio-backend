@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Request, HTTPException, status
 from sqlalchemy.orm import Session
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from fastapi.responses import JSONResponse
 
 from app.databases.database import SessionLocal
 from app.models.visitor import Visitor
@@ -29,7 +30,7 @@ def get_db() -> Generator:
 
 @router.post("/login")
 @limiter.limit("5/minute")
-async def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
+async def login(data: LoginRequest, response: JSONResponse, db: Session = Depends(get_db)):
     # 1. Extraction (Avoid logging 'data' directly)
     ip = request.client.host
     user_agent = request.headers.get("user-agent")
@@ -94,6 +95,20 @@ async def login(data: LoginRequest, request: Request, db: Session = Depends(get_
 
     # 5. Token Generation
     token = create_access_token({"sub": data.name, "role": role})
+    if role == "admin":
+        response = JSONResponse(content={
+            "access_token": token,
+            "role": role
+        })
+        response.set_cookie(
+            key="admin_access_token", 
+            value=token, 
+            httponly=True, # Security: JS can't steal this cookie
+            samesite="lax"
+        )
+        return response
+    
+    return {"access_token": token, "role": role}
 
     return {
         "access_token": token,
