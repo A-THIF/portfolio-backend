@@ -6,23 +6,26 @@ from sqlalchemy.orm import Session
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
+# --- FIX: Only ONE clean import block from your app ---
 from app.databases.database import SessionLocal
 from app.models.visitor import Visitor
 from app.schemas.auth_schema import LoginRequest
-from app.utils.security import create_access_token
+from app.utils.security import create_access_token, get_current_user 
 from app.services.email_service import send_contact_email
 
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
 
+# Constants
 ALERT_INTERVAL = timedelta(hours=6)
 ADMIN_SECRET_PLACEHOLDER = "[redacted]"
 
 def get_db() -> Generator:
     db = SessionLocal()
-    try: yield db
-    finally: db.close()
-
+    try:
+        yield db
+    finally:
+        db.close()
 
 @router.post("/login")
 @limiter.limit("5/minute")
@@ -43,7 +46,8 @@ async def login(data: LoginRequest, request: Request, response: Response, db: Se
     if visitor:
         visitor.visit_count += 1
         visitor.last_visit = now
-        if not is_admin: visitor.profile_link = stored_profile_link
+        if not is_admin: 
+            visitor.profile_link = stored_profile_link
         if not visitor.last_alert or (now - visitor.last_alert) >= ALERT_INTERVAL:
             should_alert = True
     else:
