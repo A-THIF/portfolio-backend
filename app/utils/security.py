@@ -25,10 +25,7 @@ def verify_token(token: str):
 security = HTTPBearer(auto_error=False)
 
 
-async def get_current_user(
-    request: Request,
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-):
+async def get_current_user(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = None
     
     # 1. Check Header (Flutter)
@@ -40,10 +37,7 @@ async def get_current_user(
         token = request.cookies.get("admin_session")
     
     if not token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, 
-            detail="Unauthorized: No token or session found"
-        )
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
     payload = verify_token(token)
     if payload is None:

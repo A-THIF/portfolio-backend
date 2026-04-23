@@ -17,11 +17,7 @@ def get_db():
 # C:\Users\parve\Documents\Projects\portfolio-backend\app\admin_dashboard.py
 
 @router.get("/admin-dashboard", response_class=HTMLResponse)
-async def admin_dashboard(
-    request: Request, 
-    db: Session = Depends(get_db),
-    admin_user: dict = Depends(get_current_admin) # This one line replaces all cookie/token checks!
-):
+async def admin_dashboard(db: Session = Depends(get_db), admin: dict = Depends(get_current_admin)):
 
     # 2. LOGIC: Get data for the specific page
     page = int(request.query_params.get("page", 1) or 1)
