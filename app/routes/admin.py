@@ -17,9 +17,17 @@ def get_db():
 
 
 @router.get("/admin/user/{user_id}", response_class=HTMLResponse)
-async def get_user_detail(user_id: int, request: Request, db: Session = Depends(get_db), token: str = Query(None)):
+async def get_user_detail(
+    user_id: int, 
+    request: Request, 
+    db: Session = Depends(get_db), 
+    admin_user: dict = Depends(get_current_admin) # This enforces JWT check
+):
+    token = request.query_params.get("token")
+    if not token:
+        raise HTTPException(status_code=401, detail="Unauthorized: Missing token")
     if token != os.getenv("ADMIN_SECRET_KEY"):
-        raise HTTPException(status_code=401)
+        raise HTTPException(status_code=401, detail="Unauthorized: Invalid token")
 
     user = db.query(Visitor).filter(Visitor.id == user_id).first()
     if not user: 
