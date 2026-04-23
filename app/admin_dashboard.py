@@ -3,7 +3,8 @@ from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 from app.databases.database import SessionLocal
 from app.models.visitor import Visitor
-from app.utils.security import verify_token
+from app.utils.security import get_current_admin, verify_token
+from app.utils.security import get_current_admin
 import os
 
 router = APIRouter()
@@ -19,15 +20,8 @@ def get_db():
 async def admin_dashboard(
     request: Request, 
     db: Session = Depends(get_db),
-    admin_session: str = Cookie(None) 
+    admin_user: dict = Depends(get_current_admin) # This one line replaces all cookie/token checks!
 ):
-    # 1. SECURITY: Only the hidden "admin_session" cookie allows entry
-    if not admin_session:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    
-    payload = verify_token(admin_session)
-    if not payload or payload.get("role") != "admin":
-         raise HTTPException(status_code=403, detail="Forbidden")
 
     # 2. LOGIC: Get data for the specific page
     page = int(request.query_params.get("page", 1) or 1)

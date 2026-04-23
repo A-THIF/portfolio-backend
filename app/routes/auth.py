@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-# --- FIX: Only ONE clean import block from your app ---
 from app.databases.database import SessionLocal
 from app.models.visitor import Visitor
 from app.schemas.auth_schema import LoginRequest
@@ -16,16 +15,13 @@ from app.services.email_service import send_contact_email
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
 
-# Constants
 ALERT_INTERVAL = timedelta(hours=6)
 ADMIN_SECRET_PLACEHOLDER = "[redacted]"
 
 def get_db() -> Generator:
     db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    try: yield db
+    finally: db.close()
 
 @router.post("/login")
 @limiter.limit("5/minute")
@@ -40,7 +36,10 @@ async def login(data: LoginRequest, request: Request, response: Response, db: Se
     # 2. Database Logic (Stats/Alerts)
     stored_profile_link = ADMIN_SECRET_PLACEHOLDER if is_admin else data.profile_link
     visitor = db.query(Visitor).filter(Visitor.name == data.name, Visitor.ip_address == ip).first()
-    now = datetime.utcnow() # This is naive, matching your DB records
+    
+    # --- CRITICAL FIX: NAIVE DATETIME FOR DATABASE COMPATIBILITY ---
+    now = datetime.now(timezone.utc).replace(tzinfo=None) 
+    
     should_alert = False
 
     if visitor:
@@ -53,15 +52,15 @@ async def login(data: LoginRequest, request: Request, response: Response, db: Se
             should_alert = True
     else:
         visitor = Visitor(
-        name=data.name, 
-        profile_link=stored_profile_link, 
-        ip_address=ip,
-        user_agent=user_agent, 
-        visit_count=1, 
-        first_visit=now, 
-        last_visit=now,
-        last_alert=now if not is_admin else None # Initialize last_alert
-    )
+            name=data.name, 
+            profile_link=stored_profile_link, 
+            ip_address=ip,
+            user_agent=user_agent, 
+            visit_count=1, 
+            first_visit=now, 
+            last_visit=now,
+            last_alert=now if not is_admin else None
+        )
         db.add(visitor)
         should_alert = True 
 
@@ -76,17 +75,18 @@ async def login(data: LoginRequest, request: Request, response: Response, db: Se
             visit_count=visitor.visit_count, ip=visitor.ip_address, agent=visitor.user_agent
         )
 
-    # 4. Token & Cookie Logic
+    # 4. Token & Cookie Logic (The Hidden Signal)
     token = create_access_token({"sub": data.name, "role": role})
     
     if role == "admin":
+        # This allows your Vercel frontend to set a cookie on your Render backend
         response.set_cookie(
             key="admin_session",
             value=token,
             httponly=True,
-            samesite="none",
-            secure=True 
-
+            samesite="none", # Mandatory for Cross-Domain
+            secure=True,     # Mandatory for samesite="none"
+            max_age=3600     # 1 hour session
         )
 
     return {
