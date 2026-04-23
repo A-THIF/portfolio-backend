@@ -40,7 +40,7 @@ async def login(data: LoginRequest, request: Request, response: Response, db: Se
     # 2. Database Logic (Stats/Alerts)
     stored_profile_link = ADMIN_SECRET_PLACEHOLDER if is_admin else data.profile_link
     visitor = db.query(Visitor).filter(Visitor.name == data.name, Visitor.ip_address == ip).first()
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow() # This is naive, matching your DB records
     should_alert = False
 
     if visitor:
@@ -48,13 +48,20 @@ async def login(data: LoginRequest, request: Request, response: Response, db: Se
         visitor.last_visit = now
         if not is_admin: 
             visitor.profile_link = stored_profile_link
+
         if not visitor.last_alert or (now - visitor.last_alert) >= ALERT_INTERVAL:
             should_alert = True
     else:
         visitor = Visitor(
-            name=data.name, profile_link=stored_profile_link, ip_address=ip,
-            user_agent=user_agent, visit_count=1, first_visit=now, last_visit=now
-        )
+        name=data.name, 
+        profile_link=stored_profile_link, 
+        ip_address=ip,
+        user_agent=user_agent, 
+        visit_count=1, 
+        first_visit=now, 
+        last_visit=now,
+        last_alert=now if not is_admin else None # Initialize last_alert
+    )
         db.add(visitor)
         should_alert = True 
 
