@@ -77,8 +77,9 @@ async def login(data: LoginRequest, request: Request, response: Response, db: Se
             key="admin_session",
             value=token,
             httponly=True,
-            samesite="lax",
+            samesite="none",
             secure=True 
+
         )
 
     return {
