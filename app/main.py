@@ -11,20 +11,22 @@ from app import admin_dashboard
 from app.databases.database import engine, Base
 from app.utils.limiter import limiter
 
-# 1. ENHANCED LOG FILTERING
+
 class SensitiveDataFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
-        message = record.getMessage()
-        # Redact the specific admin key if it ever leaks into any log message
-        admin_secret = os.getenv("ADMIN_SECRET_KEY")
-        if admin_secret and admin_secret in message:
-            record.msg = message.replace(admin_secret, "[REDACTED_SENSITIVE_KEY]")
-            record.args = ()
-        
-        # Redact standard body keywords
-        if "body=" in message or "request_body" in message:
-            record.msg = "[redacted request body]"
-            record.args = ()
+        # If it's a string message, we can safely redact
+        if isinstance(record.msg, str):
+            admin_secret = os.getenv("ADMIN_SECRET_KEY")
+            if admin_secret and admin_secret in record.msg:
+                record.msg = record.msg.replace(admin_secret, "[REDACTED_SENSITIVE_KEY]")
+            
+            # If Uvicorn access logs are present, the secret might be in the args, not the msg
+            if record.args and isinstance(record.args, tuple):
+                new_args = list(record.args)
+                for i, arg in enumerate(new_args):
+                    if isinstance(arg, str) and admin_secret and admin_secret in arg:
+                        new_args[i] = arg.replace(admin_secret, "[REDACTED_SENSITIVE_KEY]")
+                record.args = tuple(new_args)
         return True
 
 def configure_logging() -> None:
