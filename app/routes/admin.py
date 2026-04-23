@@ -1,13 +1,11 @@
-from http.cookiejar import Cookie
-
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Cookie
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.databases.database import SessionLocal
 from app.models.visitor import Visitor
-from app.utils.security import get_current_admin
+from app.utils.security import verify_token # Import the verification logic
 import os
-from sqlalchemy import func
 
 router = APIRouter()
 
@@ -16,27 +14,24 @@ def get_db():
     try: yield db
     finally: db.close()
 
-
-
 @router.get("/admin/user/{user_id}", response_class=HTMLResponse)
 async def get_user_detail(
     user_id: int, 
     db: Session = Depends(get_db), 
-    admin_access_token: str = Cookie(None) # Automatically looks for the cookie
+    admin_session: str = Cookie(None) # Match the cookie name used in login
 ):
-    if not admin_access_token:
-        raise HTTPException(status_code=401, detail="No admin cookie found")
-    token = request.query_params.get("token")
-    if not token:
-        raise HTTPException(status_code=401, detail="Unauthorized: Missing token")
-    if token != os.getenv("ADMIN_SECRET_KEY"):
-        raise HTTPException(status_code=401, detail="Unauthorized: Invalid token")
+    # 1. Gatekeeper: Check cookie presence AND validity
+    if not admin_session:
+        return HTMLResponse(content="<h1>Unauthorized</h1>", status_code=401)
+    
+    payload = verify_token(admin_session)
+    if not payload or payload.get("role") != "admin":
+        return HTMLResponse(content="<h1>Forbidden</h1>", status_code=403)
 
     user = db.query(Visitor).filter(Visitor.id == user_id).first()
     if not user: 
         return HTMLResponse(content="<h1>User Not Found</h1>", status_code=404)
 
-    # We force HTML response here so you don't see JSON in the browser
     html_content = f"""
     <html>
       <head>
@@ -59,11 +54,12 @@ async def get_user_detail(
           <div class="row"><span class="label">User-Agent</span><span class="value" style="font-size:10px; text-align:right;">{user.user_agent}</span></div>
           <div class="row" style="border:none;"><span class="label">Profile Link</span><span class="value">{user.profile_link or 'None'}</span></div>
         </div>
-        <a href="/admin-dashboard?token={token}" class="back">&larr; Back to Dashboard</a>
+        <a href="/admin-dashboard" class="back">&larr; Back to Dashboard</a>
       </body>
     </html>
     """
     return HTMLResponse(content=html_content)
+
 @router.get("/public/stats")
 async def get_public_stats(db: Session = Depends(get_db)):
     stats = db.query(
@@ -73,7 +69,6 @@ async def get_public_stats(db: Session = Depends(get_db)):
      .order_by(func.date(Visitor.last_visit)).all()
 
     total = db.query(func.count(Visitor.id)).scalar()
-
     return {
         "dates": [str(s.date) for s in stats],
         "counts": [s.count for s in stats],
