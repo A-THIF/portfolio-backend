@@ -90,16 +90,14 @@ Boot the Engine
 uvicorn main:app --reload
 ```
 
-🧠 Technical Highlights
-Zero-Log Security: Using URL fragments ensures sensitive tokens never appear in the server's access.log.
+## Technical Highlights
+- Zero-Log Security: Using URL fragments ensures sensitive tokens never appear in the server's access.log.
+- First-Party Persistence: Transitioned from fragile sessionStorage to robust, secure Cookies for the Admin suite.
+- Hybrid Responses: Seamlessly serves both JSON API endpoints for Flutter and Server-Side Rendered (SSR) HTML for the Admin dashboard.
 
-First-Party Persistence: Transitioned from fragile sessionStorage to robust, secure Cookies for the Admin suite.
+## Contact & Collaboration:
 
-Hybrid Responses: Seamlessly serves both JSON API endpoints for Flutter and Server-Side Rendered (SSR) HTML for the Admin dashboard.
-
-📬 Contact & Collaboration
 Looking to discuss Agentic AI, Backend Architecture, or Cybersecurity?
 
 LinkedIn: Mohamed Athif N
-
 GitHub: A-THIF
