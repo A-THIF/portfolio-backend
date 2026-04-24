@@ -14,7 +14,11 @@ def get_db():
     finally: db.close()
 
 @router.get("/admin-dashboard", response_class=HTMLResponse)
-async def admin_dashboard_bootstrap(request: Request):
+async def admin_dashboard_bootstrap(request: Request, admin_session: str = Cookie(None)):
+    if admin_session:
+        payload = verify_token(admin_session)
+        if payload and payload.get("role") == "admin":
+            return RedirectResponse(url="/admin-dashboard/view")
     """
     Step 1: Serves a bootstrap page that reads the JWT from the URL fragment
     and exchanges it for a first-party cookie on this domain.
