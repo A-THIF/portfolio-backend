@@ -10,13 +10,16 @@ async def send_visitor_notification(
 ):
     url = f"https://api.telegram.org/bot{settings.TELEGRAM_TOKEN}/sendMessage"
     
-    # Building a clean, readable alert for your phone
+    # 💡 Pro Tip: Using Markdown [Text](Link) makes the link clickable
+    # If no link provided, we just show "None"
+    formatted_link = f"[{profile_link}]({profile_link})" if profile_link and "http" in profile_link else "None"
+
     body = (
         "🕹️ *New Lockscreen Entry*\n"
         "--------------------------\n"
         f"👤 *Name:* {name}\n"
         f"📧 *Email:* {email if email else 'Not provided'}\n"
-        f"🔗 *Profile:* {profile_link if profile_link else 'None'}\n"
+        f"🔗 *Profile:* {formatted_link}\n"
         "--------------------------\n"
         f"🌐 *IP:* `{ip}`\n"
         f"🔢 *Total Visits:* {visit_count}\n"
@@ -28,7 +31,8 @@ async def send_visitor_notification(
             await client.post(url, json={
                 "chat_id": settings.TELEGRAM_CHAT_ID,
                 "text": body,
-                "parse_mode": "Markdown"
+                "parse_mode": "Markdown",
+                "disable_web_page_preview": False # Shows a preview of their profile link
             })
         except Exception as e:
-            print(f"Telegram Notification Failed: {e}") 
+            print(f"Telegram Notification Failed: {e}")

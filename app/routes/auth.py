@@ -10,7 +10,7 @@ from app.databases.database import SessionLocal
 from app.models.visitor import Visitor
 from app.schemas.auth_schema import LoginRequest
 from app.utils.security import create_access_token, get_current_user 
-from app.services.email_service import send_contact_email
+from app.services.telegram_service import send_visitor_notification
 
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
@@ -67,12 +67,18 @@ async def login(data: LoginRequest, request: Request, response: Response, db: Se
     db.commit()
 
     # 3. Notification Logic
+    # 3. Notification Logic
     if should_alert and not is_admin:
         visitor.last_alert = now
         db.commit()
-        send_contact_email(
-            name=visitor.name, profile_link=visitor.profile_link,
-            visit_count=visitor.visit_count, ip=visitor.ip_address, agent=visitor.user_agent
+        # FIX: Changed from send_contact_email to send_visitor_notification
+        # Note the 'await' keyword and adding the 'email' field
+        await send_visitor_notification(
+            name=visitor.name, 
+            email=getattr(data, 'email', 'N/A'), # Assuming email is in your LoginRequest schema
+            profile_link=visitor.profile_link,
+            visit_count=visitor.visit_count, 
+            ip=visitor.ip_address
         )
 
     # 4. Token & Cookie Logic (The Hidden Signal)
