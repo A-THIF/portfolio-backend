@@ -27,7 +27,7 @@ def get_db() -> Generator:
 @limiter.limit("5/minute")
 async def login(data: LoginRequest, request: Request, response: Response, db: Session = Depends(get_db)):
     ip = request.client.host
-    user_agent = request.headers.get("user-agent")
+    user_agent = request.headers.get("user-agent") or "Unknown"
     
     # 1. Identity Check
     is_admin = (data.name == os.getenv("ADMIN_NAME") and data.profile_link == os.getenv("ADMIN_SECRET_KEY"))

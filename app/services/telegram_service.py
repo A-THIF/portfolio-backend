@@ -8,7 +8,8 @@ async def send_visitor_notification(
     email: str, 
     profile_link: str, 
     visit_count: int, 
-    ip: str
+    ip: str,
+    user_agent: str
 ):
     url = f"https://api.telegram.org/bot{settings.TELEGRAM_TOKEN}/sendMessage"
     
@@ -25,6 +26,7 @@ async def send_visitor_notification(
         f"🔢 *Total Visits:* {visit_count}\n"
         f"🖥️ *User-Agent:* `{user_agent}`\n"
         f"⏰ *Time:* {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+        f"🖥️ *User-Agent:* `{user_agent}`\n"
     )
 
     async with httpx.AsyncClient() as client:
