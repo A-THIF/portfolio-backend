@@ -53,6 +53,7 @@ async def login(data: LoginRequest, request: Request, response: Response, db: Se
     else:
         visitor = Visitor(
             name=data.name, 
+            email=data.email,  # <--- ADD THIS LINE
             profile_link=stored_profile_link, 
             ip_address=ip,
             user_agent=user_agent, 
@@ -62,7 +63,7 @@ async def login(data: LoginRequest, request: Request, response: Response, db: Se
             last_alert=now if not is_admin else None
         )
         db.add(visitor)
-        should_alert = True 
+        should_alert = True
 
     db.commit()
 

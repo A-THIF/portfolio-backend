@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import httpx
 from app.config import settings
 
@@ -10,20 +12,19 @@ async def send_visitor_notification(
 ):
     url = f"https://api.telegram.org/bot{settings.TELEGRAM_TOKEN}/sendMessage"
     
-    # 💡 Pro Tip: Using Markdown [Text](Link) makes the link clickable
-    # If no link provided, we just show "None"
     formatted_link = f"[{profile_link}]({profile_link})" if profile_link and "http" in profile_link else "None"
 
     body = (
         "🕹️ *New Lockscreen Entry*\n"
         "--------------------------\n"
         f"👤 *Name:* {name}\n"
-        f"📧 *Email:* {email if email else 'Not provided'}\n"
+        f"📧 *Email:* {email if email else 'None'}\n"
         f"🔗 *Profile:* {formatted_link}\n"
         "--------------------------\n"
         f"🌐 *IP:* `{ip}`\n"
         f"🔢 *Total Visits:* {visit_count}\n"
-        f"✨ *Type:* {'Returning User' if visit_count > 1 else 'New User'}"
+        f"🖥️ *User-Agent:* `{user_agent}`\n"
+        f"⏰ *Time:* {datetime.now().strftime('%Y-%m-%d %H:%M')}"
     )
 
     async with httpx.AsyncClient() as client:

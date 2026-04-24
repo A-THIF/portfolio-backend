@@ -133,11 +133,14 @@ async def admin_dashboard_view(
     )
 
     rows = "".join([
-        f"<tr onclick=\"window.location='/admin/user/{v.id}'\" style='cursor:pointer;'>"
-        f"<td>{v.name}</td><td>{v.visit_count}</td>"
-        f"<td>{v.last_visit.strftime('%b %d')}</td></tr>"
-        for v in visitors
-    ])
+    f"<tr onclick=\"window.location='/admin/user/{v.id}'\" style='cursor:pointer;'>"
+    f"<td>{v.name}</td>"
+    f"<td>{v.email if v.email else '---'}</td>"
+    f"<td>{v.visit_count}</td>"
+    f"<td>{v.last_visit.strftime('%b %d')}</td>"
+    f"</tr>"
+    for v in visitors
+])
 
     pagination_links = " ".join([
         f"<a href='?page={p}' class='{'active' if p == page else 'page-btn'}'>{p}</a>"
@@ -169,7 +172,7 @@ async def admin_dashboard_view(
         <div class="container">
             <h1>🚀 Visitor Dashboard</h1>
             <table>
-                <thead><tr><th>Name</th><th>Hits</th><th>Date</th></tr></thead>
+                <thead><tr><th>Name</th><th>Email</th><th>Hits</th><th>Date</th></tr></thead>
                 <tbody>{rows}</tbody>
             </table>
             <div class="pagination">{pagination_links}</div>
