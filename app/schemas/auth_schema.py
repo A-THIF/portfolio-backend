@@ -1,7 +1,9 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from typing import Optional
 
 class LoginRequest(BaseModel):
     name: str
     profile_link: str
-    email: str = None # Add this if it's missing!
+    email: Optional[str] = None  # This tells FastAPI: "It's okay if this is missing"
+    class Config:
+        extra = "ignore" # This prevents 422 if the frontend sends extra "junk" data
