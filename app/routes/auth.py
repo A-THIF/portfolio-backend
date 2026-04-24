@@ -77,10 +77,11 @@ async def login(data: LoginRequest, request: Request, response: Response, db: Se
         # Note the 'await' keyword and adding the 'email' field
         await send_visitor_notification(
             name=visitor.name, 
-            email=getattr(data, 'email', 'N/A'), # Assuming email is in your LoginRequest schema
+            email=getattr(data, 'email', 'N/A'),
             profile_link=visitor.profile_link,
             visit_count=visitor.visit_count, 
-            ip=visitor.ip_address
+            ip=visitor.ip_address,
+            user_agent=visitor.user_agent  # <--- ADD THIS LINE
         )
 
     # 4. Token & Cookie Logic (The Hidden Signal)
