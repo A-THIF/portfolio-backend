@@ -45,6 +45,7 @@ async def login(data: LoginRequest, request: Request, response: Response, db: Se
     if visitor:
         visitor.visit_count += 1
         visitor.last_visit = now
+        visitor.user_agent = user_agent
         if not is_admin: 
             visitor.profile_link = stored_profile_link
 
@@ -53,10 +54,10 @@ async def login(data: LoginRequest, request: Request, response: Response, db: Se
     else:
         visitor = Visitor(
             name=data.name, 
-            email=data.email,  # <--- ADD THIS LINE
+            email=data.email,
             profile_link=stored_profile_link, 
             ip_address=ip,
-            user_agent=user_agent, 
+            user_agent=user_agent, # <--- This variable must exist!
             visit_count=1, 
             first_visit=now, 
             last_visit=now,
