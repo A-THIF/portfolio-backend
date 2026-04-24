@@ -2,6 +2,7 @@ from datetime import datetime
 
 import httpx
 from app.config import settings
+from user_agents import parse
 
 async def send_visitor_notification(
     name: str, 
