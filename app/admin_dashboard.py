@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request, Response, HTTPException, Depends, Cookie
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse  # <--- ADD THIS
 from sqlalchemy.orm import Session
 from app.databases.database import SessionLocal
 from app.models.visitor import Visitor
