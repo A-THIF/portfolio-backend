@@ -54,7 +54,7 @@ async def get_user_detail(
           <div class="row"><span class="label">User-Agent</span><span class="value" style="font-size:10px; text-align:right;">{user.user_agent}</span></div>
           <div class="row" style="border:none;"><span class="label">Profile Link</span><span class="value">{user.profile_link or 'None'}</span></div>
         </div>
-        <a href="/admin-dashboard" class="back">&larr; Back to Dashboard</a>
+        <a href="/admin-dashboard/view" class="back">&larr; Back to Dashboard</a>
       </body>
     </html>
     """
