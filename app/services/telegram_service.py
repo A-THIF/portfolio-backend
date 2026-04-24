@@ -15,6 +15,8 @@ async def send_visitor_notification(
     
     formatted_link = f"[{profile_link}]({profile_link})" if profile_link and "http" in profile_link else "None"
 
+    ua = parse(user_agent)
+    device_info = f"{ua.browser.family} on {ua.os.family}" # e.g. Chrome on Windows
     body = (
         "🕹️ *New Lockscreen Entry*\n"
         "--------------------------\n"
@@ -24,9 +26,8 @@ async def send_visitor_notification(
         "--------------------------\n"
         f"🌐 *IP:* `{ip}`\n"
         f"🔢 *Total Visits:* {visit_count}\n"
-        f"🖥️ *User-Agent:* `{user_agent}`\n"
+        f"🖥️ *Device:* `{device_info}`\n" # Much cleaner on your phone!
         f"⏰ *Time:* {datetime.now().strftime('%Y-%m-%d %H:%M')}"
-        f"🖥️ *User-Agent:* `{user_agent}`\n"
     )
 
     async with httpx.AsyncClient() as client:
