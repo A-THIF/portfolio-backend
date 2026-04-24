@@ -5,6 +5,7 @@ from app.databases.database import SessionLocal
 from app.models.visitor import Visitor
 from app.utils.security import verify_token
 import os
+from user_agents import parse
 
 router = APIRouter()
 
@@ -132,22 +133,26 @@ async def admin_dashboard_view(
         .all()
     )
 
-    rows = "".join([
-    f"<tr onclick=\"window.location='/admin/user/{v.id}'\" style='cursor:pointer;'>"
-    f"<td>{v.name}</td>"
-    f"<td>{v.email if v.email else '---'}</td>"
-    f"<td>{v.visit_count}</td>"
-    f"<td>{v.last_visit.strftime('%b %d')}</td>"
-    f"</tr>"
-    for v in visitors
-])
+    rows = ""
+    for v in visitors:
+        ua = parse(v.user_agent or "")
+        device_info = f"{ua.browser.family} ({ua.os.family})"
+
+        rows += (
+            f"<tr onclick=\"window.location='/admin/user/{v.id}'\" style='cursor:pointer;'>"
+            f"<td>{v.name}</td>"
+            f"<td><small style='color:#888'>{v.email if v.email else '---'}</small></td>"
+            f"<td>{v.visit_count}</td>"
+            f"<td><span title='{v.user_agent}' style='font-size:0.8em; color:#00BFFF;'>{device_info}</span></td>"
+            f"<td>{v.last_visit.strftime('%b %d')}</td>"
+            f"</tr>"
+        )
 
     pagination_links = " ".join([
         f"<a href='?page={p}' class='{'active' if p == page else 'page-btn'}'>{p}</a>"
         for p in range(1, total_pages + 1)
     ])
 
-    # (rest of your HTML template — unchanged)
     full_html = f"""
     <html>
       <head>
@@ -172,9 +177,17 @@ async def admin_dashboard_view(
         <div class="container">
             <h1>🚀 Visitor Dashboard</h1>
             <table>
-                <thead><tr><th>Name</th><th>Email</th><th>Hits</th><th>Date</th></tr></thead>
-                <tbody>{rows}</tbody>
-            </table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Hits</th>
+            <th>Device</th>
+            <th>Date</th>
+        </tr>
+    </thead>
+    <tbody>{rows}</tbody>
+</table>
             <div class="pagination">{pagination_links}</div>
             <h3 style="margin-top:40px; color: #888;">Traffic Trend</h3>
             <div class="chart-container"><canvas id="visitorChart"></canvas></div>
