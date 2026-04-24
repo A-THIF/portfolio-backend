@@ -79,12 +79,11 @@ app.include_router(admin.router)
 app.include_router(admin_dashboard.router)
 
 # 7. GLOBAL EXCEPTION CATCH (Final Safety Net)
+# main.py — update the middleware
 @app.middleware("http")
 async def catch_exceptions_middleware(request: Request, call_next):
     try:
         return await call_next(request)
     except Exception as e:
-        # Prevents raw exception strings (which might contain data) 
-        # from leaking to the client in production
-        logging.error(f"Unhandled error: {str(e)}")
+        logging.error(f"Unhandled error on {request.method} {request.url.path}: {type(e).__name__}: {str(e)}")
         return Response("Internal Server Error", status_code=500)

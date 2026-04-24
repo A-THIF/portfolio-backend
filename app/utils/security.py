@@ -22,35 +22,34 @@ def verify_token(token: str):
     except JWTError:
         return None
     
-security = HTTPBearer(auto_error=False)
+# C:\Users\parve\Documents\Projects\portfolio-backend\app\utils\security.py
 
+# ... (keep imports and verify_token as is)
+
+# 1. CRITICAL: auto_error=False prevents the 401 crash when the header is missing
+security = HTTPBearer(auto_error=False)
 
 async def get_current_user(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = None
     
-    # 1. Check Header (Flutter)
+    # Check 1: Authorization Header (used by Flutter API calls)
     if credentials:
         token = credentials.credentials
         
-    # 2. Check Cookie (HTML Dashboard)
+    # Check 2: Cookie (used by the HTML Dashboard after redirect)
     if not token:
+        # LOOK HERE: Ensure this name matches what you set in auth.py
         token = request.cookies.get("admin_session")
     
+    # If neither exists, THEN we throw the 401
     if not token:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, 
+            detail="Session missing. Please login via the frontend."
+        )
 
     payload = verify_token(token)
     if payload is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, 
-            detail="Session expired or invalid"
-        )
-    return payload
-
-def get_current_admin(payload: dict = Depends(get_current_user)):
-    if payload.get("role") != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Forbidden: Admin access required"
-        )
+        raise HTTPException(status_code=401, detail="Session expired")
+        
     return payload

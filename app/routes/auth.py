@@ -76,17 +76,20 @@ async def login(data: LoginRequest, request: Request, response: Response, db: Se
         )
 
     # 4. Token & Cookie Logic (The Hidden Signal)
+    # C:\Users\parve\Documents\Projects\portfolio-backend\app\routes\auth.py
+
+    # ... (inside your login function)
     token = create_access_token({"sub": data.name, "role": role})
     
     if role == "admin":
-        # This allows your Vercel frontend to set a cookie on your Render backend
         response.set_cookie(
-            key="admin_session",
+            key="admin_session", # MUST match the name in security.py
             value=token,
             httponly=True,
-            samesite="none", # Mandatory for Cross-Domain
-            secure=True,     # Mandatory for samesite="none"
-            max_age=3600     # 1 hour session
+            samesite="none",  # REQUIRED for Vercel -> Render
+            secure=True,      # REQUIRED for samesite="none"
+            max_age=3600,
+            path="/"          # REQUIRED so the whole domain can see it
         )
 
     return {

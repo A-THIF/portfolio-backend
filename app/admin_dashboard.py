@@ -22,44 +22,55 @@ async def admin_dashboard_bootstrap(request: Request):
     """
     return HTMLResponse(content="""
     <html>
-      <head><title>Loading...</title></head>
+      <head><title>Authenticating...</title>
+        <style>
+          body { background:#0a0a0a; color:#eee; font-family:monospace;
+                 display:flex; align-items:center; justify-content:center; height:100vh; margin:0; }
+          #msg { text-align:center; }
+        </style>
+      </head>
       <body>
+        <div id="msg">🔐 Authenticating...</div>
         <script>
-          const token = window.location.hash.slice(1); // remove the '#'
-          
+          const token = window.location.hash.slice(1);
+          const msg = document.getElementById('msg');
+
           if (!token) {
-            document.body.innerHTML = '<h2>No token provided. Access denied.</h2>';
+            msg.innerHTML = '❌ No token in URL. Close this tab and log in again.';
           } else {
-            // Exchange the fragment token for a real first-party cookie
             fetch('/admin/set-session', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',  // include cookies
+              credentials: 'include',
               body: JSON.stringify({ token: token })
             })
-            .then(res => {
+            .then(async res => {
               if (res.ok) {
-                // Now navigate to the actual dashboard (cookie is set same-domain)
+                msg.innerHTML = '✅ Auth OK — redirecting...';
                 window.location.replace('/admin-dashboard/view');
               } else {
-                document.body.innerHTML = '<h2>Invalid or expired token.</h2>';
+                // Show the actual error from backend
+                const text = await res.text();
+                msg.innerHTML = '❌ Auth failed (' + res.status + '): ' + text;
               }
+            })
+            .catch(err => {
+              msg.innerHTML = '❌ Network error: ' + err.message;
             });
           }
         </script>
-        <p>Authenticating...</p>
       </body>
     </html>
     """)
 
 
 @router.post("/admin/set-session")
-async def set_admin_session(request: Request, response: Response, db: Session = Depends(get_db)):
-    """
-    Step 2: Validates the JWT and sets a first-party cookie (same domain = no CORS issues).
-    """
-    body = await request.json()
-    token = body.get("token")
+async def set_admin_session(request: Request, response: Response): # No db dependency
+    try:
+        body = await request.json()
+        token = body.get("token", "")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid request body")
     
     if not token:
         raise HTTPException(status_code=400, detail="No token provided")
@@ -68,12 +79,12 @@ async def set_admin_session(request: Request, response: Response, db: Session = 
     if not payload or payload.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Invalid or non-admin token")
     
-    # This cookie is set on onrender.com — fully first-party, no browser blocking
+    # Set First-Party Cookie
     response.set_cookie(
         key="admin_session",
         value=token,
         httponly=True,
-        samesite="strict",  # Can use strict now — same domain!
+        samesite="strict", # This works because we are on the same domain
         secure=True,
         max_age=3600,
         path="/"
