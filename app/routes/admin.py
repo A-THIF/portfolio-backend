@@ -6,6 +6,7 @@ from app.databases.database import SessionLocal
 from app.models.visitor import Visitor
 from app.utils.security import verify_token # Import the verification logic
 import os
+from user_agents import parse
 
 router = APIRouter()
 
@@ -18,9 +19,9 @@ def get_db():
 async def get_user_detail(
     user_id: int, 
     db: Session = Depends(get_db), 
-    admin_session: str = Cookie(None) # Match the cookie name used in login
+    admin_session: str = Cookie(None)
 ):
-    # 1. Gatekeeper: Check cookie presence AND validity
+    # 1. Gatekeeper Check
     if not admin_session:
         return HTMLResponse(content="<h1>Unauthorized</h1>", status_code=401)
     
@@ -32,6 +33,21 @@ async def get_user_detail(
     if not user: 
         return HTMLResponse(content="<h1>User Not Found</h1>", status_code=404)
 
+    # --- PARSING THE USER AGENT ---
+    ua = parse(user.user_agent or "Unknown")
+    browser_detail = f"{ua.browser.family} {ua.browser.version_string}"
+    os_detail = f"{ua.os.family} {ua.os.version_string}"
+    
+    # Determine the device category
+    if ua.is_mobile:
+        device_type = "📱 Mobile"
+    elif ua.is_tablet:
+        device_type = "📟 Tablet"
+    elif ua.is_bot:
+        device_type = "🤖 Bot/Scanner"
+    else:
+        device_type = "💻 Desktop"
+
     html_content = f"""
     <html>
       <head>
@@ -39,20 +55,29 @@ async def get_user_detail(
         <style>
           body {{ font-family: sans-serif; background: #0a0a0a; color: #fff; padding: 40px; display: flex; flex-direction: column; align-items: center; }}
           .card {{ background: #111; border: 1px solid #333; padding: 25px; border-radius: 12px; width: 100%; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }}
-          .row {{ display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #222; }}
-          .label {{ color: #888; font-weight: bold; font-size: 13px; }}
+          .row {{ display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #222; }}
+          .label {{ color: #888; font-weight: bold; font-size: 13px; text-transform: uppercase; }}
           .value {{ color: #4CAF50; font-family: monospace; }}
+          .ua-box {{ background: #000; padding: 10px; font-size: 11px; color: #555; border-radius: 4px; margin-top: 15px; word-break: break-all; }}
           .back {{ margin-top: 20px; color: #00BFFF; text-decoration: none; }}
         </style>
       </head>
       <body>
         <div class="card">
-          <h1>Profile: {user.name}</h1>
+          <h1 style="color:#4CAF50; margin-top:0;">Profile: {user.name}</h1>
+          <div class="row"><span class="label">Email</span><span class="value">{user.email or '---'}</span></div>
           <div class="row"><span class="label">IP Address</span><span class="value">{user.ip_address}</span></div>
           <div class="row"><span class="label">Total Visits</span><span class="value">{user.visit_count}</span></div>
           <div class="row"><span class="label">Last Seen</span><span class="value">{user.last_visit.strftime('%Y-%m-%d %H:%M') if user.last_visit else 'N/A'}</span></div>
-          <div class="row"><span class="label">User-Agent</span><span class="value" style="font-size:10px; text-align:right;">{user.user_agent}</span></div>
+          
+          <h3 style="color:#888; margin: 20px 0 10px 0;">Device Analysis</h3>
+          <div class="row"><span class="label">Platform</span><span class="value">{device_type}</span></div>
+          <div class="row"><span class="label">OS</span><span class="value">{os_detail}</span></div>
+          <div class="row"><span class="label">Browser</span><span class="value">{browser_detail}</span></div>
+          
           <div class="row" style="border:none;"><span class="label">Profile Link</span><span class="value">{user.profile_link or 'None'}</span></div>
+          
+          <div class="ua-box"><strong>Raw User-Agent:</strong><br>{user.user_agent}</div>
         </div>
         <a href="/admin-dashboard/view" class="back">&larr; Back to Dashboard</a>
       </body>
