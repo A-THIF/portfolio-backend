@@ -51,8 +51,9 @@ async def admin_dashboard_bootstrap(request: Request, admin_session: str = Cooki
             })
             .then(async res => {
               if (res.ok) {
-                msg.innerHTML = '✅ Auth OK — redirecting...';
-                window.location.replace('/admin-dashboard/view');
+                        window.history.replaceState(null, null, window.location.pathname); 
+                        msg.innerHTML = '✅ Auth OK — redirecting...';
+                        window.location.replace('/admin-dashboard/view');
               } else {
                 // Show the actual error from backend
                 const text = await res.text();
